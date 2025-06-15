@@ -96,7 +96,7 @@
 #define configTICK_RATE_HZ				( ( TickType_t ) 1000 )
 #define configMAX_PRIORITIES			( 10 )
 #define configMINIMAL_STACK_SIZE		( ( unsigned short ) 384 ) /* Can be as low as 60 but some of the demo tasks that use this constant require it to be higher. */
-#define configTOTAL_HEAP_SIZE			( ( size_t ) ( 46 * 1024 ) )
+#define configTOTAL_HEAP_SIZE			( ( size_t ) ( 32 * 1024 ) )
 #define configMAX_TASK_NAME_LEN			( 16 )
 #define configUSE_TRACE_FACILITY		1
 #define configUSE_16_BIT_TICKS			0
@@ -111,6 +111,7 @@
 #define configGENERATE_RUN_TIME_STATS	0
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 0
 #define configRECORD_STACK_HIGH_ADDRESS 1
+#define configISR_STACK_SIZE_WORDS      256
 
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES 			0
