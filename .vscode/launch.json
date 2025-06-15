@@ -1,0 +1,16 @@
+{
+    "configurations": [
+        {
+            "name": "Debug CH32V307",
+            "type": "cortex-debug",
+            "request": "launch",
+            "servertype": "openocd",
+            "configFiles": ["C:/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/OpenOCD/OpenOCD/bin/wch-riscv.cfg"],
+            "executable": "build/CH32V307VC.elf",
+            "runToEntryPoint": "main",
+            "device": "CH32V307",
+            "gdbPath": "riscv-wch-elf-gdb.exe",
+            "rtos": "FreeRTOS"
+        }
+    ]
+}

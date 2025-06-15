@@ -1,6 +1,6 @@
 ENTRY( _start )
 
-__stack_size = 2048;
+__stack_size = 4096;
 
 PROVIDE( _stack_size = __stack_size );
 
@@ -11,8 +11,8 @@ MEMORY
    CH32V30x_D8 - CH32V303CB-CH32V303RB
 */
 /**/
-	FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 128K
-	RAM (xrw) : ORIGIN = 0x20000000, LENGTH = 32K
+	FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 256K
+	RAM (xrw) : ORIGIN = 0x20000000, LENGTH = 64K
 
     
 /* CH32V30x_D8C - CH32V307VC-CH32V307WC-CH32V307RC-CH32V305CC

@@ -1,0 +1,5 @@
+{
+    "cmake.ctest.allowParallelJobs": true,
+    "cmake.generator": "Ninja",
+    "cmake.exportCompileCommandsFile": true    
+}

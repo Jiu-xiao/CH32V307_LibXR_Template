@@ -2,14 +2,12 @@
 * File Name          : system_ch32v30x.c
 * Author             : WCH
 * Version            : V1.0.0
-* Date               : 2024/03/05
+* Date               : 2021/06/06
 * Description        : CH32V30x Device Peripheral Access Layer System Source File.
 *                      For HSE = 8Mhz
-*********************************************************************************
 * Copyright (c) 2021 Nanjing Qinheng Microelectronics Co., Ltd.
-* Attention: This software (modified or not) and binary are used for 
-* microcontroller manufactured by Nanjing Qinheng Microelectronics.
-*******************************************************************************/
+* SPDX-License-Identifier: Apache-2.0
+*********************************************************************************/
 #include "ch32v30x.h" 
 
 /* 
@@ -21,9 +19,9 @@
 //#define SYSCLK_FREQ_48MHz_HSE  48000000
 //#define SYSCLK_FREQ_56MHz_HSE  56000000
 //#define SYSCLK_FREQ_72MHz_HSE  72000000
-#define SYSCLK_FREQ_96MHz_HSE  96000000
+//#define SYSCLK_FREQ_96MHz_HSE  96000000
 //#define SYSCLK_FREQ_120MHz_HSE  120000000
-//#define SYSCLK_FREQ_144MHz_HSE  144000000
+#define SYSCLK_FREQ_144MHz_HSE  144000000
 //#define SYSCLK_FREQ_HSI    HSI_VALUE
 //#define SYSCLK_FREQ_48MHz_HSI  48000000
 //#define SYSCLK_FREQ_56MHz_HSI  56000000
@@ -112,11 +110,15 @@ void SystemInit (void)
 {
   RCC->CTLR |= (uint32_t)0x00000001;
 
+#ifdef CH32V30x_D8C
+  RCC->CFGR0 &= (uint32_t)0xF8FF0000;
+#else
   RCC->CFGR0 &= (uint32_t)0xF0FF0000;
+#endif 
 
   RCC->CTLR &= (uint32_t)0xFEF6FFFF;
   RCC->CTLR &= (uint32_t)0xFFFBFFFF;
-  RCC->CFGR0 &= (uint32_t)0xFF00FFFF;
+  RCC->CFGR0 &= (uint32_t)0xFF80FFFF;
 
 #ifdef CH32V30x_D8C
   RCC->CTLR &= (uint32_t)0xEBFFFFFF;
@@ -137,13 +139,7 @@ void SystemInit (void)
  */
 void SystemCoreClockUpdate (void)
 {
-  uint32_t tmp = 0, pllmull = 0, pllsource = 0;
-  uint8_t Pll_6_5 = 0;
-
-#ifdef CH32V30x_D8C
-  uint8_t Pll2mull = 0;
-
-#endif
+  uint32_t tmp = 0, pllmull = 0, pllsource = 0, Pll_6_5 = 0;
 
   tmp = RCC->CFGR0 & RCC_SWS;
   
@@ -161,56 +157,37 @@ void SystemCoreClockUpdate (void)
       pllmull = ( pllmull >> 18) + 2;
 
 #ifdef CH32V30x_D8
-      if(pllmull == 17) pllmull = 18;
+          if(pllmull == 17) pllmull = 18;
 #else
-      if(pllmull == 2) pllmull = 18;
-      if(pllmull == 15){
-          pllmull = 13;  /* *6.5 */
-          Pll_6_5 = 1;
-      }
-      if(pllmull == 16) pllmull = 15;
-      if(pllmull == 17) pllmull = 16;
+          if(pllmull == 2) pllmull = 18;
+          if(pllmull == 15){
+              pllmull = 13;  /* *6.5 */
+              Pll_6_5 = 1;
+          }
+          if(pllmull == 16) pllmull = 15;
+          if(pllmull == 17) pllmull = 16;
 #endif
 
       if (pllsource == 0x00)
       {
-          if(EXTEN->EXTEN_CTR & EXTEN_PLL_HSI_PRE) SystemCoreClock = HSI_VALUE * pllmull;
-          else SystemCoreClock = (HSI_VALUE >> 1) * pllmull;
+          if(EXTEN->EXTEN_CTR & EXTEN_PLL_HSI_PRE){
+              SystemCoreClock = (HSI_VALUE) * pllmull;
+          }
+          else{
+              SystemCoreClock = (HSI_VALUE >>1) * pllmull;
+          }
       }
       else
-      {
-
-#ifdef CH32V30x_D8
-          if ((RCC->CFGR0 & RCC_PLLXTPRE) != (uint32_t)RESET)
-          {
-            SystemCoreClock = (HSE_VALUE >> 1) * pllmull;
-          }
-          else
-          {
-            SystemCoreClock = HSE_VALUE * pllmull;
-          }
-
-#else
-          if(RCC->CFGR2 & (1<<16)){ /* PLL2 */
-              SystemCoreClock = HSE_VALUE/(((RCC->CFGR2 & 0xF0)>>4) + 1);  /* PREDIV2 */
-
-              Pll2mull = (uint8_t)((RCC->CFGR2 & 0xF00)>>8);
-
-              if(Pll2mull == 0) SystemCoreClock = (SystemCoreClock * 5)>>1;
-              else if(Pll2mull == 1) SystemCoreClock = (SystemCoreClock * 25)>>1;
-              else if(Pll2mull == 15) SystemCoreClock = SystemCoreClock * 20;
-              else  SystemCoreClock = SystemCoreClock * (Pll2mull + 2);
-
-              SystemCoreClock = SystemCoreClock/((RCC->CFGR2 & 0xF) + 1);  /* PREDIV1 */
-          }
-          else{/* HSE */
-              SystemCoreClock = HSE_VALUE/((RCC->CFGR2 & 0xF) + 1);  /* PREDIV1 */
-          }
-
-          SystemCoreClock = SystemCoreClock * pllmull;
-#endif
+      {    
+        if ((RCC->CFGR0 & RCC_PLLXTPRE) != (uint32_t)RESET)
+        {
+          SystemCoreClock = (HSE_VALUE >> 1) * pllmull;
+        }
+        else
+        {
+          SystemCoreClock = HSE_VALUE * pllmull;
+        }
       }
-
 
       if(Pll_6_5 == 1) SystemCoreClock = (SystemCoreClock / 2);
 
@@ -233,7 +210,6 @@ void SystemCoreClockUpdate (void)
  */
 static void SetSysClock(void)
 {
-  //GPIO_IPD_Unused();
 #ifdef SYSCLK_FREQ_HSE
     SetSysClockToHSE();
 #elif defined SYSCLK_FREQ_48MHz_HSE

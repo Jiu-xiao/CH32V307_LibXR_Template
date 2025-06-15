@@ -2,6 +2,12 @@ set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_VERSION 1)
 cmake_minimum_required(VERSION 3.19)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS ON)
+
 set(COMPILER_PREFIX "riscv-wch-elf-")
 set(CMAKE_C_COMPILER ${COMPILER_PREFIX}gcc)
 set(CMAKE_CXX_COMPILER ${COMPILER_PREFIX}g++)
@@ -15,23 +21,31 @@ set(SIZE ${COMPILER_PREFIX}size)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build)
 
 # project settings
-project(CH32V307VC C ASM)
-set(CMAKE_C_STANDARD 99)
+project(CH32V307VC)
+
+enable_language(C CXX ASM)
 
 # compile and running settings
 add_compile_options(-march=rv32imafcxw -mabi=ilp32f -msmall-data-limit=8 -mno-save-restore -fmessage-length=0)
 add_compile_options(-fsigned-char -ffunction-sections -fdata-sections -fsingle-precision-constant -Wunused -Wuninitialized)
 add_compile_options($<$<COMPILE_LANGUAGE:ASM>:-x$<SEMICOLON>assembler-with-cpp>)
-add_compile_options(-Og -g)
+add_compile_options(-g)
 
 add_link_options(-nostartfiles -Xlinker --gc-sections -Wl,--print-memory-usage,-Map,${PROJECT_BINARY_DIR}/${PROJECT_NAME}.map)
-add_link_options(--specs=nano.specs --specs=nosys.specs -march=rv32imafcxw -mabi=ilp32f -flto)
+add_link_options(--specs=nano.specs --specs=nosys.specs -march=rv32imafcxw -mabi=ilp32f -flto -lm -lc)
 
+add_compile_definitions(
+)
+
+# target
 add_executable(${PROJECT_NAME}.elf)
 
 file(GLOB ${PROJECT_NAME}_CORE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/Core/*.c")
 file(GLOB ${PROJECT_NAME}_PERIPHERAL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/Peripheral/src/*.c")
-file(GLOB ${PROJECT_NAME}_USER_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/User/*.c")
+file(GLOB ${PROJECT_NAME}_USER_SOURCES 
+        "${CMAKE_CURRENT_SOURCE_DIR}/User/*.c"
+        "${CMAKE_CURRENT_SOURCE_DIR}/User/*.cpp"
+)
 file(GLOB ${PROJECT_NAME}_FREERTOS_SOURCES 
         "${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS/*.c"
         "${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS/portable/GCC/RISC-V/*.c"
@@ -46,6 +60,7 @@ target_sources(${PROJECT_NAME}.elf
         ${${PROJECT_NAME}_USER_SOURCES}
         ${${PROJECT_NAME}_FREERTOS_SOURCES}
         ${CMAKE_CURRENT_SOURCE_DIR}/startup_ch32v30x_D8C.S
+        ${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS/portable/GCC/RISC-V/portASM.S
 )
 
 target_include_directories(${PROJECT_NAME}.elf
@@ -66,13 +81,79 @@ target_link_options(${PROJECT_NAME}.elf PRIVATE -T ${LINKER_SCRIPT})
 set(HEX_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex)
 set(BIN_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin)
 
+# libxr
+set(LIBXR_NO_EIGEN True)
+set(LIBXR_SYSTEM FreeRTOS)
+set(LIBXR_DRIVER ch)
+
+add_subdirectory(libxr)
+
+target_include_directories(xr
+        PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/Peripheral/inc
+        ${CMAKE_CURRENT_SOURCE_DIR}/Core
+        ${CMAKE_CURRENT_SOURCE_DIR}/User
+        ${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS/portable/GCC/RISC-V
+        ${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS/portable/GCC/RISC-V/chip_specific_extensions/RV32I_PFIC_no_extensions
+        ${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS/portable/Common
+        ${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS/portable/MemMang
+)
+
+target_include_directories(${PROJECT_NAME}.elf PRIVATE
+    PUBLIC $<TARGET_PROPERTY:xr,INTERFACE_INCLUDE_DIRECTORIES>
+    PUBLIC User
+)
+
+target_link_libraries(xr
+    PUBLIC
+)
+
+target_link_libraries(${PROJECT_NAME}.elf
+    xr
+)
+
+# tinyusb
+
+file(GLOB ${PROJECT_NAME}_TINYUSB_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/tinyusb/src/tusb.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tinyusb/src/common/tusb_fifo.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tinyusb/src/device/usbd.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tinyusb/src/device/usbd_control.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tinyusb/src/class/cdc/cdc_device.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tinyusb/src/class/dfu/dfu_rt_device.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tinyusb/src/class/hid/hid_device.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tinyusb/src/class/midi/midi_device.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tinyusb/src/class/msc/msc_device.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tinyusb/src/class/net/net_device.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tinyusb/src/class/usbtmc/usbtmc_device.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tinyusb/src/class/vendor/vendor_device.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tinyusb/src/portable/wch/dcd_ch32_usbhs.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tinyusb/src/portable/wch/dcd_ch32_usbfs.c"
+)
+
+target_sources(${PROJECT_NAME}.elf
+    PRIVATE ${${PROJECT_NAME}_TINYUSB_SOURCES}
+)
+
+target_include_directories(${PROJECT_NAME}.elf
+    PUBLIC tinyusb/src
+    PUBLIC tinyusb/src/portable/wch
+)
+
+target_include_directories(xr
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libxr/driver/tinyusb
+    PUBLIC tinyusb/src
+    PUBLIC tinyusb/src/portable/wch
+)
+
+target_sources(xr
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libxr/driver/tinyusb/tinyusb_virtual_uart.cpp
+)
+
+# build settings
 add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
         COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${PROJECT_NAME}.elf> ${HEX_FILE}
         COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${PROJECT_NAME}.elf> ${BIN_FILE}
         COMMENT "Building ${HEX_FILE}
 Building ${BIN_FILE}")
-
-set(LIST_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.lst)
-add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
-        COMMAND ${CMAKE_OBJDUMP} --all-headers --demangle --disassemble -M xw $<TARGET_FILE:${PROJECT_NAME}.elf> > ${LIST_FILE}
-        COMMENT "Building ${LIST_FILE}")
