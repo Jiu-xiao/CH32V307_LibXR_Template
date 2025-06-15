@@ -158,6 +158,9 @@ void vPortSetupTimerInterrupt( void )
     /* set systick is lowest priority */
     NVIC_SetPriority(SysTicK_IRQn,0xf0);
 
+    NVIC_EnableIRQ(Software_IRQn);
+    NVIC_EnableIRQ(SysTicK_IRQn);
+
     SysTick->CTLR= 0;
     SysTick->SR  = 0;
     SysTick->CNT = 0;
@@ -231,7 +234,7 @@ void vPortEndScheduler( void )
 	for( ;; );
 }
 /*-----------------------------------------------------------*/
-void SysTick_Handler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+void SysTick_Handler(void) __attribute__((interrupt));
 void SysTick_Handler( void )
 {
     GET_INT_SP();
@@ -276,5 +279,6 @@ void vPortClearInterruptMask(portUBASE_TYPE uvalue)
 {
     __asm volatile("csrw  mstatus, %0"::"r"(uvalue));
 }
+
 
 

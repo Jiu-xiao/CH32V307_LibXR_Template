@@ -8,7 +8,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
-set(COMPILER_PREFIX "riscv-wch-elf-")
+set(COMPILER_PREFIX "riscv32-unknown-elf-")
 set(CMAKE_C_COMPILER ${COMPILER_PREFIX}gcc)
 set(CMAKE_CXX_COMPILER ${COMPILER_PREFIX}g++)
 set(CMAKE_ASM_COMPILER ${COMPILER_PREFIX}gcc)
@@ -26,15 +26,40 @@ project(CH32V307VC)
 enable_language(C CXX ASM)
 
 # compile and running settings
-add_compile_options(-march=rv32imafcxw -mabi=ilp32f -msmall-data-limit=8 -mno-save-restore -fmessage-length=0)
-add_compile_options(-fsigned-char -ffunction-sections -fdata-sections -fsingle-precision-constant -Wunused -Wuninitialized)
-add_compile_options($<$<COMPILE_LANGUAGE:ASM>:-x$<SEMICOLON>assembler-with-cpp>)
+# CPU 架构相关
+set(CPU_FLAGS "-march=rv32imacf_zicsr_zifencei -mabi=ilp32f -msmall-data-limit=8 -mno-save-restore")
+
+# 通用编译选项
+set(GENERAL_FLAGS "-Wall -Wextra -fno-builtin -ffunction-sections -fdata-sections -fsigned-char -fsingle-precision-constant -Wunused -Wuninitialized")
+
+# C 编译器专用 flags
+set(CMAKE_C_FLAGS "${CPU_FLAGS} ${GENERAL_FLAGS} -fmessage-length=0"
+    CACHE INTERNAL "" FORCE)
+
+# C++ 编译器专用 flags
+set(CMAKE_CXX_FLAGS "${CPU_FLAGS} ${GENERAL_FLAGS} -fno-use-cxa-atexit -fno-exceptions -fno-rtti -fno-threadsafe-statics"
+    CACHE INTERNAL "" FORCE)
+
+# 汇编器选项
+set(CMAKE_ASM_FLAGS "${CPU_FLAGS} -x assembler-with-cpp"
+    CACHE INTERNAL "" FORCE)
 add_compile_options(-g)
 
-add_link_options(-nostartfiles -Xlinker --gc-sections -Wl,--print-memory-usage,-Map,${PROJECT_BINARY_DIR}/${PROJECT_NAME}.map)
-add_link_options(--specs=nano.specs --specs=nosys.specs -march=rv32imafcxw -mabi=ilp32f -flto -lm -lc)
+add_link_options(
+  -nostartfiles
+  -Xlinker --gc-sections
+  -Wl,--print-memory-usage
+  -Wl,-Map=${PROJECT_BINARY_DIR}/${PROJECT_NAME}.map
+)
 
-add_compile_definitions(
+add_link_options(
+  --specs=nano.specs
+  --specs=nosys.specs
+  -march=rv32imacf_zicsr_zifencei
+  -mabi=ilp32f
+  -flto
+  -lm
+  -lc
 )
 
 # target
@@ -49,8 +74,7 @@ file(GLOB ${PROJECT_NAME}_USER_SOURCES
 file(GLOB ${PROJECT_NAME}_FREERTOS_SOURCES 
         "${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS/*.c"
         "${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS/portable/GCC/RISC-V/*.c"
-        "${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS/portable/Common/*.c"
-        "${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS/portable/MemMang/*.c"
+        "${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS/portable/MemMang/heap_4.c"
 )
 
 target_sources(${PROJECT_NAME}.elf 
@@ -82,7 +106,6 @@ set(HEX_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex)
 set(BIN_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin)
 
 # libxr
-set(LIBXR_NO_EIGEN True)
 set(LIBXR_SYSTEM FreeRTOS)
 set(LIBXR_DRIVER ch)
 
