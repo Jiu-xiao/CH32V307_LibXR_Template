@@ -67,7 +67,6 @@
     1 tab == 4 spaces!
 */
 
-
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
@@ -86,6 +85,8 @@
 /* See https://www.freertos.org/Using-FreeRTOS-on-RISC-V.html */
 
 /* don't have MTIME */
+
+// clang-format off
 #define configMTIME_BASE_ADDRESS 	 ( 0 )
 #define configMTIMECMP_BASE_ADDRESS  ( 0 )
 
@@ -96,14 +97,14 @@
 #define configTICK_RATE_HZ				( ( TickType_t ) 1000 )
 #define configMAX_PRIORITIES			( 10 )
 #define configMINIMAL_STACK_SIZE		( ( unsigned short ) 384 ) /* Can be as low as 60 but some of the demo tasks that use this constant require it to be higher. */
-#define configTOTAL_HEAP_SIZE			( ( size_t ) ( 32 * 1024 ) )
+#define configTOTAL_HEAP_SIZE			( ( size_t ) ( 36 * 1024 ) )
 #define configMAX_TASK_NAME_LEN			( 16 )
 #define configUSE_TRACE_FACILITY		1
 #define configUSE_16_BIT_TICKS			0
 #define configIDLE_SHOULD_YIELD			0
 #define configUSE_MUTEXES				1
 #define configQUEUE_REGISTRY_SIZE		8
-#define configCHECK_FOR_STACK_OVERFLOW	3
+#define configCHECK_FOR_STACK_OVERFLOW	1
 #define configUSE_RECURSIVE_MUTEXES		1
 #define configUSE_MALLOC_FAILED_HOOK	0
 #define configUSE_APPLICATION_TASK_TAG	0
@@ -146,5 +147,6 @@ to exclude the API function. */
 header file. */
 #define configASSERT( x ) if( ( x ) == 0 ) { taskDISABLE_INTERRUPTS(); while(1); }
 
+// clang-format on
 
 #endif /* FREERTOS_CONFIG_H */

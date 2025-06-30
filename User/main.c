@@ -23,7 +23,7 @@ __attribute__((interrupt)) void USB_HP_CAN1_TX_IRQHandler(void)
   tud_task();
 }
 
-static void DefaultTask(void *pvParameters)
+static void DefaultTask(void* pvParameters)
 {
   (void)(pvParameters);
   app_main();
@@ -65,7 +65,7 @@ int main(void)
   RCC_OTGFSCLKConfig(otg_div);
   RCC_AHBPeriphClockCmd(RCC_AHBPeriph_OTG_FS, ENABLE);
   __enable_irq();
-  xTaskCreate(DefaultTask, "DefaultTask", 4096, NULL, 3, NULL);
+  xTaskCreate(DefaultTask, "DefaultTask", 5000, NULL, 3, NULL);
   vTaskStartScheduler();
   return 0;
 }

@@ -108,6 +108,7 @@ set(BIN_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin)
 # libxr
 set(LIBXR_SYSTEM FreeRTOS)
 set(LIBXR_DRIVER ch)
+set(LIBXR_CH32_CONFIG_FILE ch32v30x_conf.h)
 
 add_subdirectory(libxr)
 
@@ -128,12 +129,8 @@ target_include_directories(${PROJECT_NAME}.elf PRIVATE
     PUBLIC User
 )
 
-target_link_libraries(xr
-    PUBLIC
-)
-
 target_link_libraries(${PROJECT_NAME}.elf
-    xr
+    PUBLIC xr
 )
 
 # tinyusb
